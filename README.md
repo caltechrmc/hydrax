@@ -59,17 +59,10 @@ pytest
 
 ## Examples
 
-Launch an interactive pendulum swingup simulation with predictive sampling:
+For the competition, we will be working with the cube example. To run the example:
 
 ```bash
-python examples/pendulum.py ps
-```
-
-Launch an interactive humanoid standup simulation (shown above) with MPPI and
-online domain randomization:
-
-```bash
-python examples/humanoid.py
+python examples/cube.py cmaes
 ```
 
 Other demos can be found in the `examples` folder.
