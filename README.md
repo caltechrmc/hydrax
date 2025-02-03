@@ -44,13 +44,6 @@ Install the package and dependencies:
 pip install -e .
 ```
 
-(Optional) set up pre-commit hooks:
-
-```bash
-pre-commit autoupdate
-pre-commit install
-```
-
 (Optional) run unit tests:
 
 ```bash
