@@ -120,8 +120,9 @@ def run_interactive(
             # Do a replanning step
             plan_start = time.time()
             policy_params, rollouts = jit_optimize(mjx_data, policy_params)
-            plan_time = time.time() - plan_start
-
+            plan_time = time.time() - plan_start            
+            print(f"Iteration {policy_params.iteration-1}: Best cost: {policy_params.best_cost:.4f}, Mean cost: {policy_params.mean_cost:.4f}")
+            
             # Visualize the rollouts
             if show_traces:
                 ii = 0

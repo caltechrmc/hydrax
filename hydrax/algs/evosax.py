@@ -22,11 +22,17 @@ class EvosaxParams:
         controls: The latest control sequence, U = [u₀, u₁, ..., ].
         opt_state: The state of the evosax optimizer (covariance, etc.).
         rng: The pseudo-random number generator key.
+        iteration: Counter for optimization iterations.
+        best_cost: The best cost from the most recent iteration.
+        mean_cost: The mean cost from the most recent iteration.
     """
 
     controls: jax.Array
     opt_state: EvoState
     rng: jax.Array
+    iteration: int = 0  # Add iteration counter with default value
+    best_cost: float = float('inf')  # Add best cost tracking
+    mean_cost: float = float('inf')  # Add mean cost tracking
 
 
 class Evosax(SamplingBasedController):
@@ -78,7 +84,7 @@ class Evosax(SamplingBasedController):
         rng, init_rng = jax.random.split(rng)
         controls = jnp.zeros((self.task.planning_horizon, self.task.model.nu))
         opt_state = self.strategy.initialize(init_rng, self.es_params)
-        return EvosaxParams(controls=controls, opt_state=opt_state, rng=rng)
+        return EvosaxParams(controls=controls, opt_state=opt_state, rng=rng, iteration=0)
 
     def sample_controls(
         self, params: EvosaxParams
@@ -106,7 +112,13 @@ class Evosax(SamplingBasedController):
         self, params: EvosaxParams, rollouts: Trajectory
     ) -> EvosaxParams:
         """Update the policy parameters based on the rollouts."""
-        costs = jnp.sum(rollouts.costs, axis=1)  # sum over time steps
+        costs = jnp.sum(rollouts.costs, axis=1)
+        
+        # We can't print formatted tracer objects directly in a JIT-compiled function
+        # So just calculate the values and return them with the params
+        min_cost = jnp.min(costs)
+        mean_cost = jnp.mean(costs)
+        
         x = jnp.reshape(rollouts.controls, (self.strategy.popsize, -1))
         opt_state = self.strategy.tell(
             x, costs, params.opt_state, self.es_params
@@ -123,7 +135,13 @@ class Evosax(SamplingBasedController):
             best_member=x[best_idx], best_fitness=costs[best_idx]
         )
 
-        return params.replace(controls=best_controls, opt_state=opt_state)
+        return params.replace(
+            controls=best_controls, 
+            opt_state=opt_state,
+            iteration=params.iteration + 1,  # Increment the iteration counter
+            best_cost=min_cost,              # Store the best cost
+            mean_cost=mean_cost              # Store the mean cost
+        )
 
     def get_action(self, params: EvosaxParams, t: float) -> jax.Array:
         """Get the control action for the current time step, zero order hold."""
